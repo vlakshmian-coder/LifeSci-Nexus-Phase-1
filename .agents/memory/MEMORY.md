@@ -1,0 +1,1 @@
+- [LifeSci generator compatibility](lifesci-generator-compatibility.md) — current Orval/Zod constraints require care with integer fields and combined path/query parameters.

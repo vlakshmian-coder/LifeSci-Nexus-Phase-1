@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "LifeSci Nexus"
+description = "An enterprise-style workspace for evidence-grounded MedTech clinical-validation and regulatory-readiness preparation, with controlled workflows, traceable findings, project continuity, and human review."
+version = "1.0.0"
+id = "artifacts/lifesci-nexus"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23440
+
+[services.development]
+run = "pnpm --filter @workspace/lifesci-nexus run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lifesci-nexus", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lifesci-nexus/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23440"
+BASE_PATH = "/"

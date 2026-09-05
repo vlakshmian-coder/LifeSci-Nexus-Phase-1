@@ -3,13 +3,27 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: LifeSci Nexus Phase 1 workspace API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: dashboard
+    description: Workspace overview operations
+  - name: projects
+    description: Project workspace operations
+  - name: runs
+    description: Controlled workflow run operations
+  - name: findings
+    description: Traceable finding operations
+  - name: review
+    description: Human review queue operations
+  - name: reports
+    description: Preliminary report operations
+  - name: audit
+    description: Audit trail operations
 paths:
   /healthz:
     get:
@@ -24,7 +38,218 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [dashboard]
+      summary: Get workspace overview
+      responses:
+        "200":
+          description: Workspace overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List projects
+      parameters:
+        - $ref: "#/components/parameters/ProjectStatusQuery"
+      responses:
+        "200":
+          description: Project list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Project"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectInput"
+      responses:
+        "201":
+          description: Project created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+  /projects/{projectId}:
+    get:
+      operationId: getProject
+      tags: [projects]
+      summary: Get project workspace
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project workspace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectWorkspace"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateProject
+      tags: [projects]
+      summary: Update project scope
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectUpdate"
+      responses:
+        "200":
+          description: Project updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Project"
+        "404":
+          $ref: "#/components/responses/NotFound"
+  /projects/{projectId}/runs:
+    get:
+      operationId: listProjectRuns
+      tags: [runs]
+      summary: List project workflow runs
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Workflow runs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Run"
+    post:
+      operationId: createProjectRun
+      tags: [runs]
+      summary: Start a controlled workflow run
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunInput"
+      responses:
+        "201":
+          description: Workflow run created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Run"
+        "409":
+          description: Project cannot start a run
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/findings:
+    get:
+      operationId: listProjectFindings
+      tags: [findings]
+      summary: List traceable findings
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Traceable findings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Finding"
+  /review-queue:
+    get:
+      operationId: listReviewQueue
+      tags: [review]
+      summary: List items awaiting qualified human review
+      responses:
+        "200":
+          description: Review queue
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ReviewItem"
+  /projects/{projectId}/reports:
+    get:
+      operationId: listProjectReports
+      tags: [reports]
+      summary: List preliminary readiness reports
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Project reports
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Report"
+  /projects/{projectId}/audit-events:
+    get:
+      operationId: listProjectAuditEvents
+      tags: [audit]
+      summary: List project audit events
+      parameters:
+        - $ref: "#/components/parameters/ProjectId"
+      responses:
+        "200":
+          description: Audit events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AuditEvent"
 components:
+  parameters:
+    ProjectId:
+      name: projectId
+      in: path
+      required: true
+      schema:
+        type: string
+    ProjectStatusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/ProjectStatus"
+    FindingStatusQuery:
+      name: status
+      in: query
+      required: false
+      schema:
+        $ref: "#/components/schemas/FindingStatus"
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +258,242 @@ components:
           type: string
       required:
         - status
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+    ProjectStatus:
+      type: string
+      enum: [ACTIVE, ARCHIVED]
+    WorkflowState:
+      type: string
+      enum:
+        - CREATED
+        - SCOPED
+        - DOCUMENTS_ANALYZED
+        - EVIDENCE_RETRIEVED
+        - GAPS_IDENTIFIED
+        - FINDINGS_VERIFIED
+        - REPORT_DRAFTED
+        - HUMAN_REVIEW
+        - APPROVED
+        - RETURNED
+        - REJECTED
+    FindingStatus:
+      type: string
+      enum:
+        - SUPPORTED
+        - PARTIALLY_SUPPORTED
+        - UNSUPPORTED
+        - CONFLICTING
+        - NOT_ASSESSABLE
+        - REQUIRES_HUMAN_REVIEW
+    ProjectScope:
+      type: object
+      required: [productName, intendedUse, projectPhase, assessmentFramework]
+      properties:
+        productName:
+          type: string
+        intendedUse:
+          type: string
+        projectPhase:
+          type: string
+        assessmentFramework:
+          type: string
+        jurisdictionContext:
+          type: ["string", "null"]
+        scopeNotes:
+          type: ["string", "null"]
+    Project:
+      type: object
+      required: [id, name, status, scope, workflowState, findingCount, updatedAt]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        status:
+          $ref: "#/components/schemas/ProjectStatus"
+        scope:
+          $ref: "#/components/schemas/ProjectScope"
+        workflowState:
+          $ref: "#/components/schemas/WorkflowState"
+        findingCount:
+          type: number
+        updatedAt:
+          type: string
+          format: date-time
+    ProjectInput:
+      type: object
+      required: [name, scope]
+      properties:
+        name:
+          type: string
+          minLength: 1
+        scope:
+          $ref: "#/components/schemas/ProjectScope"
+    ProjectUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        status:
+          $ref: "#/components/schemas/ProjectStatus"
+        scope:
+          $ref: "#/components/schemas/ProjectScope"
+    Run:
+      type: object
+      required: [id, projectId, state, label, startedAt, updatedAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        state:
+          $ref: "#/components/schemas/WorkflowState"
+        label:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    RunInput:
+      type: object
+      properties:
+        label:
+          type: string
+          minLength: 1
+    Finding:
+      type: object
+      required:
+        [id, projectId, title, summary, status, confidence, provenance, updatedAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        title:
+          type: string
+        summary:
+          type: string
+        status:
+          $ref: "#/components/schemas/FindingStatus"
+        confidence:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+        provenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/Provenance"
+        reviewerDecision:
+          type: ["string", "null"]
+        updatedAt:
+          type: string
+          format: date-time
+    Provenance:
+      type: object
+      required: [sourceType, label]
+      properties:
+        sourceType:
+          type: string
+          enum: [EXTERNAL_EVIDENCE, PROJECT_MEMORY, PROJECT_DOCUMENT, HUMAN_DECISION]
+        label:
+          type: string
+        locator:
+          type: ["string", "null"]
+    ReviewItem:
+      type: object
+      required: [id, projectId, title, reason, priority, createdAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        title:
+          type: string
+        reason:
+          type: string
+        priority:
+          type: string
+          enum: [HIGH, MEDIUM, LOW]
+        createdAt:
+          type: string
+          format: date-time
+    Report:
+      type: object
+      required: [id, projectId, title, status, generatedAt, findingCount]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+          enum: [DRAFT, HUMAN_REVIEW, APPROVED, RETURNED]
+        generatedAt:
+          type: string
+          format: date-time
+        findingCount:
+          type: number
+    AuditEvent:
+      type: object
+      required: [id, projectId, eventType, actor, description, createdAt]
+      properties:
+        id:
+          type: string
+        projectId:
+          type: string
+        eventType:
+          type: string
+        actor:
+          type: string
+        description:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+    ProjectWorkspace:
+      type: object
+      required: [project, runs, findings, reports, recentAuditEvents]
+      properties:
+        project:
+          $ref: "#/components/schemas/Project"
+        runs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Run"
+        findings:
+          type: array
+          items:
+            $ref: "#/components/schemas/Finding"
+        reports:
+          type: array
+          items:
+            $ref: "#/components/schemas/Report"
+        recentAuditEvents:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
+    Dashboard:
+      type: object
+      required:
+        [activeProjects, reviewQueueCount, verifiedFindingCount, recentActivity]
+      properties:
+        activeProjects:
+          type: number
+        reviewQueueCount:
+          type: number
+        verifiedFindingCount:
+          type: number
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditEvent"
 
